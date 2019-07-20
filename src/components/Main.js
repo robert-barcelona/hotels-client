@@ -1,8 +1,21 @@
 import React, {Component} from 'react'
 import Datetime from 'react-datetime'
-import {addDays, format} from 'date-fns'
+import {addDays,parse, format} from 'date-fns'
+import {searchAvailability} from '../logic'
 
 class Main extends Component {
+
+
+  state = {
+    checkin: '',
+    checkout: '',
+    error: '',
+    availabilityCursor: 0,
+    promo_code:'THN20'
+  }
+
+  adultsRef = React.createRef();
+  childrenRef = React.createRef();
 
   onCheckInChange = checkin => this.setState({checkin})
   onCheckOutChange = checkout => this.setState({checkout})
@@ -13,26 +26,26 @@ class Main extends Component {
   }
 
   onModify = async (e) => {
-    const {state: {checkin, checkout},setError, adultsRef, childrenRef} = this
+    e.preventDefault()
+    const {state: {promo_code,checkin, checkout}, setError, adultsRef, childrenRef} = this
     let adults = adultsRef.current.value
     let children = childrenRef.current.value
-
-    e.preventDefault()
+    setError('')
 
     if (adults === 0 && children === 0) {
-      console.log(adults,children)
-
       setError('You must have either children or adults')
-      return
     }
-    console.log(adults,children)
+    const checkinEeuu = format(parse(checkin,'dd-MM-yyyy', new Date()),'MM-dd-yyyy')
+    const checkoutEeuu = format(parse(checkout,'dd-MM-yyyy', new Date()),'MM-dd-yyyy')
 
+    try {
+      const results = await searchAvailability(adults,children,checkinEeuu,checkoutEeuu,promo_code)
+      console.log('results',results)
+    } catch (e) {
+      setError(`${e.message}`)
+      console.log(e)
+    }
   }
-
-
-  adultsRef = React.createRef();
-  childrenRef = React.createRef();
-
 
   componentDidMount() {
     const today = format(new Date(), 'dd-MM-yyyy')
@@ -40,14 +53,6 @@ class Main extends Component {
 
     this.setState({checkin: today, checkout: tomorrow})
 
-  }
-
-
-  state = {
-
-    checkin: '',
-    checkout: '',
-    error: ''
   }
 
   render() {
@@ -110,7 +115,7 @@ class Main extends Component {
               </div>
               <div className="form-group select-inline">
                 <select ref={this.adultsRef} defaultValue={0} className="form-control" placeholder="Adults" id="adults">
-                  <option value={0} >Adults</option>
+                  <option value={0}>Adults</option>
                   <option value={1}>Adults: 1</option>
                   <option value={2}>Adults: 2</option>
                   <option value={3}>Adults: 3</option>
@@ -123,8 +128,9 @@ class Main extends Component {
                 </select>
               </div>
               <div className="form-group select-inline">
-                <select ref={this.childrenRef}  defaultValue={0}  className="form-control" placeholder="Children" id="children">
-                  <option value={0} >Children</option>
+                <select ref={this.childrenRef} defaultValue={0} className="form-control" placeholder="Children"
+                        id="children">
+                  <option value={0}>Children</option>
                   <option value={1}>Children: 1</option>
                   <option value={2}>Children: 2</option>
                   <option value={3}>Children: 3</option>
