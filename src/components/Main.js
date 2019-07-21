@@ -236,9 +236,9 @@ class Main extends Component {
             <div className="col-md-8 main">
 
               {/* ROOMS */}
-              {available && available.map((room, index) => <Room
+              {available.length !== 0  && available.map((room, index) => <Room
                 onClick={e => this.setCurrentRoom(index)} key={room.title}   {...room}/>)}
-              {!available && 'No rooms available for these criteria'}
+              {available.length === 0 && 'No rooms available for these criteria'}
             </div>
             {/* SIDEBAR */}
             {currentRoom && <Sidebar makePurchase={this.makePurchase} adults={adults} children={children} checkin={checkin}
