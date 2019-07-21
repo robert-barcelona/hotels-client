@@ -3,14 +3,13 @@ import React from 'react'
 
 
 export default (props) => {
-  const {title,makePurchase,description,checkin,checkout,checkinTime,checkoutTime,adults,children,cost,discountedCost} = props
+  const {title,description,checkin,checkout,checkinTime,checkoutTime,adults,children,cost,discountedCost} = props
 
-  return <div className="col-md-4 sidebar">
+  return <div className="col-md-8 sidebar purchasePage">
     <div className="card">
-      <h2>Reservation Summary</h2>
+      <h3>You have now booked the following room!</h3>
       <div className="clearfix">
         <h5 className="pull-left">{title}</h5>
-
       </div>
       <div className="clearfix">
         <div className="card-content">
@@ -42,7 +41,7 @@ export default (props) => {
            { !discountedCost && <p className="main">€{cost}</p>}
           </div>
         </div>
-        <a href="#" onClick={makePurchase}  className="btn btn-primary btn-group-justified">
+        <a href="#" className="btn btn-primary btn-group-justified">
           Save
         </a>
       </div>

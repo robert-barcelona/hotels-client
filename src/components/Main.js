@@ -1,10 +1,12 @@
 import React, { Component } from 'react'
 import Datetime from 'react-datetime'
 import { addDays, format } from 'date-fns'
+import Swal from 'sweetalert2'
 import { searchAvailability } from '../logic'
 import { eeuu2EuDate, isAfterDateEU, eu2EeuuDate } from '../utils'
 import Room from './Room'
 import Sidebar from './Sidebar'
+import PurchasePage from './PurchasePage'
 
 class Main extends Component {
 
@@ -19,7 +21,6 @@ class Main extends Component {
     currentRoom: null,
   }
 
-
   adultsRef = React.createRef()
   childrenRef = React.createRef()
 
@@ -27,6 +28,19 @@ class Main extends Component {
     this.setState({ checkin: momentObject.format('DD-MM-YYYY') })
   }
   onCheckOutChange = momentObject => this.setState({ checkout: momentObject.format('DD-MM-YYYY') })
+
+
+  makePurchase = () => {
+   const {state:{checkin,checkout,currentRoom:{title,cost,discountedCost}}} = this
+
+    const total = discountedCost ? discountedCost : cost
+
+    Swal.fire({
+      title: 'Room booked!',
+      text: `You have now booked ${title} from ${checkin} to ${checkout} for a total cost of ${total}€`,
+    })
+
+  }
 
 
   setError = error => {
@@ -102,7 +116,7 @@ class Main extends Component {
   }
 
   render() {
-    const { state: { currentRoom, error, checkin, checkout, available }, onModify, onCheckInChange, onCheckOutChange, adultsRef, childrenRef } = this
+    const { state: {purchaseMade, currentRoom, error, checkin, checkout, available }, onModify, onCheckInChange, onCheckOutChange, adultsRef, childrenRef } = this
     let adults
     let children
 
@@ -142,94 +156,97 @@ class Main extends Component {
           </div>
         </div>
       </nav>
-      <div className="engine text-center">
-        <div className="engine-wrapper">
-          <div className="container text-center">
-            <form id="search" className="form-inline" onSubmit={onModify}>
-              <div className="form-group">
-                <div className="input-group date" data-date-format="dd/mm/yyyy">
-                  {/*<input id="checkin" type="text" className="form-control" placeholder="Check in"/>*/}
-                  <Datetime onChange={onCheckInChange} value={checkin} placeholder={'Check in'}
-                            dateFormat={'DD-MM-YYYY'} timeFormat={false}/>
-                  <div className="input-group-addon">
-                    <span className="glyphicon glyphicon-calendar"/>
+       <div>
+        <div className="engine text-center">
+          <div className="engine-wrapper">
+            <div className="container text-center">
+              <form id="search" className="form-inline" onSubmit={onModify}>
+                <div className="form-group">
+                  <div className="input-group date" data-date-format="dd/mm/yyyy">
+                    {/*<input id="checkin" type="text" className="form-control" placeholder="Check in"/>*/}
+                    <Datetime onChange={onCheckInChange} value={checkin} placeholder={'Check in'}
+                              dateFormat={'DD-MM-YYYY'} timeFormat={false}/>
+                    <div className="input-group-addon">
+                      <span className="glyphicon glyphicon-calendar"/>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="form-group">
-                <div className="input-group date" data-date-format="dd/mm/yyyy">
-                  <Datetime onChange={onCheckOutChange} value={checkout} placeholder={'Check out'}
-                            dateFormat={'DD-MM-YYYY'} timeFormat={false}/>
-                  <div className="input-group-addon">
-                    <span className="glyphicon glyphicon-calendar"/>
+                <div className="form-group">
+                  <div className="input-group date" data-date-format="dd/mm/yyyy">
+                    <Datetime onChange={onCheckOutChange} value={checkout} placeholder={'Check out'}
+                              dateFormat={'DD-MM-YYYY'} timeFormat={false}/>
+                    <div className="input-group-addon">
+                      <span className="glyphicon glyphicon-calendar"/>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="form-group select-inline">
-                <select ref={this.adultsRef} defaultValue={1} className="form-control"
-                        placeholder="Adults" id="adults">
-                  <option value={0}>Adults</option>
-                  <option value={1}>Adults: 1</option>
-                  <option value={2}>Adults: 2</option>
-                  <option value={3}>Adults: 3</option>
-                  <option value={4}>Adults: 4</option>
-                  <option value={5}>Adults: 5</option>
-                  <option value={6}>Adults: 6</option>
-                  <option value={7}>Adults: 7</option>
-                  <option value={8}>Adults: 8</option>
-                  <option value={9}>Adults: 9</option>
-                </select>
-              </div>
-              <div className="form-group select-inline">
-                <select ref={this.childrenRef} defaultValue={1} className="form-control"
-                        placeholder="Children"
-                        id="children">
-                  <option value={0}>Children</option>
-                  <option value={1}>Children: 1</option>
-                  <option value={2}>Children: 2</option>
-                  <option value={3}>Children: 3</option>
-                  <option value={4}>Children: 4</option>
-                  <option value={5}>Children: 5</option>
-                  <option value={6}>Children: 6</option>
-                  <option value={7}>Children: 7</option>
-                  <option value={8}>Children: 8</option>
-                  <option value={9}>Children: 9</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <a href="#" onClick={onModify} className="btn btn-primary">Modify</a>
-              </div>
-            </form>
+                <div className="form-group select-inline">
+                  <select ref={this.adultsRef} defaultValue={1} className="form-control"
+                          placeholder="Adults" id="adults">
+                    <option value={0}>Adults</option>
+                    <option value={1}>Adults: 1</option>
+                    <option value={2}>Adults: 2</option>
+                    <option value={3}>Adults: 3</option>
+                    <option value={4}>Adults: 4</option>
+                    <option value={5}>Adults: 5</option>
+                    <option value={6}>Adults: 6</option>
+                    <option value={7}>Adults: 7</option>
+                    <option value={8}>Adults: 8</option>
+                    <option value={9}>Adults: 9</option>
+                  </select>
+                </div>
+                <div className="form-group select-inline">
+                  <select ref={this.childrenRef} defaultValue={1} className="form-control"
+                          placeholder="Children"
+                          id="children">
+                    <option value={0}>Children</option>
+                    <option value={1}>Children: 1</option>
+                    <option value={2}>Children: 2</option>
+                    <option value={3}>Children: 3</option>
+                    <option value={4}>Children: 4</option>
+                    <option value={5}>Children: 5</option>
+                    <option value={6}>Children: 6</option>
+                    <option value={7}>Children: 7</option>
+                    <option value={8}>Children: 8</option>
+                    <option value={9}>Children: 9</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <a href="#" onClick={onModify} className="btn btn-primary">Modify</a>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="container rar-summary">
-        {error && <div className={'row'}>
-          <div className="alert alert-warning" role="alert">
-            {`There's been a problem: ${error}`}
+        <div className="container rar-summary">
+          {error && <div className={'row'}>
+            <div className="alert alert-warning" role="alert">
+              {`There's been a problem: ${error}`}
+            </div>
+          </div>}
+          <div className="row">
+            <div className="col-md-8 main">
+              <h2>Rooms &amp; Rates</h2>
+              <p className="subtitle">Plan your perfect stay at our hotel</p>
+              <img src="images/cocos/wizard_1.png" width={480} className="wizard"/>
+            </div>
+            <div className="col-md-4 sidebar-header"/>
           </div>
-        </div>}
-        <div className="row">
-          <div className="col-md-8 main">
-            <h2>Rooms &amp; Rates</h2>
-            <p className="subtitle">Plan your perfect stay at our hotel</p>
-            <img src="images/cocos/wizard_1.png" width={480} className="wizard"/>
-          </div>
-          <div className="col-md-4 sidebar-header"/>
-        </div>
-        <div className="row">
-          <div className="col-md-8 main">
+          <div className="row">
+            <div className="col-md-8 main">
 
-            {/* ROOMS */}
-            {available && available.map((room, index) => <Room
-              onClick={e => this.setCurrentRoom(index)} key={room.title}   {...room}/>)}
-            {!available && 'No rooms available for these criteria'}
+              {/* ROOMS */}
+              {available && available.map((room, index) => <Room
+                onClick={e => this.setCurrentRoom(index)} key={room.title}   {...room}/>)}
+              {!available && 'No rooms available for these criteria'}
+            </div>
+            {/* SIDEBAR */}
+            {currentRoom && <Sidebar makePurchase={this.makePurchase} adults={adults} children={children} checkin={checkin}
+                                     checkout={checkout} {...currentRoom} />}
           </div>
-          {/* SIDEBAR */}
-          {currentRoom && <Sidebar adults={adults} children={children} checkin={checkin}
-                                   checkout={checkout} {...currentRoom} />}
         </div>
       </div>
+
       <footer className="footer">
         <span className="ico ico-logo"/>
         <span className="ico ico-social"/>
@@ -260,6 +277,7 @@ class Main extends Component {
           </ul>
         </div>
       </footer>
+
     </div>
 
 
