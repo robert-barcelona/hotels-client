@@ -1,7 +1,10 @@
-import React, {Component} from 'react'
+import React, { Component } from 'react'
 import Datetime from 'react-datetime'
-import {addDays,parse, format} from 'date-fns'
-import {searchAvailability} from '../logic'
+import { addDays, format } from 'date-fns'
+import { searchAvailability } from '../logic'
+import { eeuu2EuDate, isAfterDateEU, eu2EeuuDate } from '../utils'
+import Room from './Room'
+import Sidebar from './Sidebar'
 
 class Main extends Component {
 
@@ -11,58 +14,107 @@ class Main extends Component {
     checkout: '',
     error: '',
     availabilityCursor: 0,
-    promo_code:'THN20'
+    promo_code: 'THN30',
+    available: [],
+    currentRoom: null,
   }
 
-  adultsRef = React.createRef();
-  childrenRef = React.createRef();
 
-  onCheckInChange = checkin => this.setState({checkin})
-  onCheckOutChange = checkout => this.setState({checkout})
+  adultsRef = React.createRef()
+  childrenRef = React.createRef()
+
+  onCheckInChange = momentObject => {
+    this.setState({ checkin: momentObject.format('DD-MM-YYYY') })
+  }
+  onCheckOutChange = momentObject => this.setState({ checkout: momentObject.format('DD-MM-YYYY') })
 
 
   setError = error => {
-    this.setState({error})
+    this.setState({ error })
+  }
+
+  setCurrentRoom = index => {
+    const { state: { available } } = this
+    console.log(index)
+    if (available) {
+      if (index <= available.length - 1) {
+        this.setState({ currentRoom: available[index] })
+      }
+    } else {
+      this.setState({ currentRoom: null })
+    }
+  }
+
+  getAvailable = async (adults, children, checkin, checkout, promo_code) => {
+    const { setError } = this
+
+    setError('')
+
+    const checkinEeuu = eu2EeuuDate(checkin)
+    const checkoutEeuu = eu2EeuuDate(checkout)
+
+    try {
+      return searchAvailability(adults, children, checkinEeuu, checkoutEeuu, promo_code)
+    } catch (e) {
+      setError(`${e.message}`)
+    }
   }
 
   onModify = async (e) => {
+    const { state: { promo_code, checkin, checkout }, setError, getAvailable, adultsRef, childrenRef, } = this
+
     e.preventDefault()
-    const {state: {promo_code,checkin, checkout}, setError, adultsRef, childrenRef} = this
-    let adults = adultsRef.current.value
-    let children = childrenRef.current.value
-    setError('')
 
-    if (adults === 0 && children === 0) {
-      setError('You must have either children or adults')
+    const adults = adultsRef.current.value
+    const children = childrenRef.current.value
+
+    if (adults === '0' && children === '0') {
+      return setError('You have not specified any guests')
     }
-    const checkinEeuu = format(parse(checkin,'dd-MM-yyyy', new Date()),'MM-dd-yyyy')
-    const checkoutEeuu = format(parse(checkout,'dd-MM-yyyy', new Date()),'MM-dd-yyyy')
 
+    if (!(isAfterDateEU(checkout, checkin))) return setError('Checkout date must be after checkin date')
     try {
-      const results = await searchAvailability(adults,children,checkinEeuu,checkoutEeuu,promo_code)
-      console.log('results',results)
+      const available = await getAvailable(adults, children, checkin, checkout, promo_code)
+      this.setState({ available })
     } catch (e) {
-      setError(`${e.message}`)
-      console.log(e)
+      setError(e.message)
     }
   }
 
-  componentDidMount() {
+  async componentDidMount() {
+
+    const { state: { promo_code }, getAvailable, setError } = this
     const today = format(new Date(), 'dd-MM-yyyy')
     const tomorrow = format(addDays(new Date(), 1), 'dd-MM-yyyy')
 
-    this.setState({checkin: today, checkout: tomorrow})
-
+    this.setState({
+      checkin: today,
+      checkout: tomorrow
+    })
+    try {
+      const available = await getAvailable(1, 1, today, tomorrow, promo_code)
+      console.log(available)
+      this.setState({ available })
+      if (available) this.setState({ currentRoom: available[0] })
+    } catch (e) {
+      setError(e.message)
+    }
   }
 
   render() {
-    const {state: {adults, children, checkin, checkout}, onModify, onCheckInChange, onCheckOutChange} = this
+    const { state: { currentRoom, error, checkin, checkout, available }, onModify, onCheckInChange, onCheckOutChange, adultsRef, childrenRef } = this
+    let adults
+    let children
+
+    if (adultsRef && adultsRef.current) adults = adultsRef.current.value
+    if (childrenRef && childrenRef.current) children = childrenRef.current.value
 
     return <div>
       <nav className="navbar navbar-fixed-top text-center">
         <div className="container-fluid">
           <div className="navbar-header">
-            <button type="button" className="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+            <button type="button" className="navbar-toggle collapsed" data-toggle="collapse"
+                    data-target="#navbar"
                     aria-expanded="false" aria-controls="navbar">
               <span className="sr-only">Toggle navigation</span>
               <span className="icon-bar"/>
@@ -98,7 +150,7 @@ class Main extends Component {
                 <div className="input-group date" data-date-format="dd/mm/yyyy">
                   {/*<input id="checkin" type="text" className="form-control" placeholder="Check in"/>*/}
                   <Datetime onChange={onCheckInChange} value={checkin} placeholder={'Check in'}
-                            dateFormat={"DD-MM-YYYY"} timeFormat={false}/>
+                            dateFormat={'DD-MM-YYYY'} timeFormat={false}/>
                   <div className="input-group-addon">
                     <span className="glyphicon glyphicon-calendar"/>
                   </div>
@@ -107,14 +159,15 @@ class Main extends Component {
               <div className="form-group">
                 <div className="input-group date" data-date-format="dd/mm/yyyy">
                   <Datetime onChange={onCheckOutChange} value={checkout} placeholder={'Check out'}
-                            dateFormat={"DD-MM-YYYY"} timeFormat={false}/>
+                            dateFormat={'DD-MM-YYYY'} timeFormat={false}/>
                   <div className="input-group-addon">
                     <span className="glyphicon glyphicon-calendar"/>
                   </div>
                 </div>
               </div>
               <div className="form-group select-inline">
-                <select ref={this.adultsRef} defaultValue={0} className="form-control" placeholder="Adults" id="adults">
+                <select ref={this.adultsRef} defaultValue={1} className="form-control"
+                        placeholder="Adults" id="adults">
                   <option value={0}>Adults</option>
                   <option value={1}>Adults: 1</option>
                   <option value={2}>Adults: 2</option>
@@ -128,7 +181,8 @@ class Main extends Component {
                 </select>
               </div>
               <div className="form-group select-inline">
-                <select ref={this.childrenRef} defaultValue={0} className="form-control" placeholder="Children"
+                <select ref={this.childrenRef} defaultValue={1} className="form-control"
+                        placeholder="Children"
                         id="children">
                   <option value={0}>Children</option>
                   <option value={1}>Children: 1</option>
@@ -150,6 +204,11 @@ class Main extends Component {
         </div>
       </div>
       <div className="container rar-summary">
+        {error && <div className={'row'}>
+          <div className="alert alert-warning" role="alert">
+            {`There's been a problem: ${error}`}
+          </div>
+        </div>}
         <div className="row">
           <div className="col-md-8 main">
             <h2>Rooms &amp; Rates</h2>
@@ -160,136 +219,15 @@ class Main extends Component {
         </div>
         <div className="row">
           <div className="col-md-8 main">
-            {/* ROOM 1 */}
-            <div className="card clearfix pointer active">
-              <div className="room-image">
-                <img src="images/cocos/room_1.png" width="100%"/>
-              </div>
-              <div className="room-content">
-                <h5 className="form-group">Mini Dreamy Room</h5>
-                <p className="form-group">Generous and comfortable these modern furnished rooms offer two queen-size
-                  beds and are on the first floor.</p>
-                <p className="form-group">Size: 25m2</p>
-                <div className="room-info">
-                  <div className="item">
-                      <span className="inline-block">
-                        <img src="images/icons/double-bed.svg" width={40}/>
-                      </span>
-                    <div>Beds: 1</div>
-                  </div>
-                  <div className="item">People: 2</div>
-                  <div className="item price text-right">
-                    <span className="line-through">€400</span>
-                    €350
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* ROOM 2 */}
-            <div className="card clearfix pointer">
-              <div className="room-image">
-                <img src="images/cocos/room_2.png" width="100%"/>
-              </div>
-              <div className="room-content">
-                <h5 className="form-group">Sweet Bungalow</h5>
-                <p className="form-group">The perfect blend of comfort and culture, our superior room with a central
-                  garden view has the stunning, and comes with a double bed.</p>
-                <p className="form-group">Size: 50m2</p>
-                <div className="room-info">
-                  <div className="item">
-                      <span className="inline-block">
-                        <img src="images/icons/double-bed.svg" width={40}/>
-                      </span>
-                    <div>Beds: 1</div>
-                  </div>
-                  <div className="item">People: 2</div>
-                  <div className="item price text-right">
-                    <span className="line-through">€500</span>
-                    €400
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* ROOM 3 */}
-            <div className="card clearfix pointer">
-              <div className="room-image">
-                <img src="images/cocos/room_3.png" width="100%"/>
-              </div>
-              <div className="room-content">
-                <h5 className="form-group">Los Cocos Suite</h5>
-                <p className="form-group">If you want a little extra from your stay, you might like our superior rooms.
-                  A garden view room has a private patio and a double bed.</p>
-                <p className="form-group">Size: 125m2</p>
-                <div className="room-info">
-                  <div className="item">
-                      <span className="inline-block">
-                        <img src="images/icons/double-bed.svg" width={40}/>
-                      </span>
-                    <div>Beds: 3</div>
-                  </div>
-                  <div className="item">People: 4</div>
-                  <div className="item price text-right">
-                    <span className="line-through">€750</span>
-                    €600
-                  </div>
-                </div>
-              </div>
-            </div>
+
+            {/* ROOMS */}
+            {available && available.map((room, index) => <Room
+              onClick={e => this.setCurrentRoom(index)} key={room.title}   {...room}/>)}
+            {!available && 'No rooms available for these criteria'}
           </div>
           {/* SIDEBAR */}
-          <div className="col-md-4 sidebar">
-            <div className="card">
-              <h2>Reservation Summary</h2>
-              <div className="clearfix">
-                <h5 className="pull-left">Mini Dreamy Room</h5>
-                <div className="form-group pull-right">
-                  <select className="pull-right" id="rooms">
-                    <option>1</option>
-                    <option>2</option>
-                    <option>3</option>
-                    <option>4</option>
-                    <option>5</option>
-                    <option>6</option>
-                    <option>7</option>
-                    <option>8</option>
-                    <option>9</option>
-                  </select>
-                </div>
-              </div>
-              <div className="clearfix">
-                <div className="card-content">
-                  <p className="main">Check in</p>
-                  <p className="base">From 15.00h</p>
-                </div>
-                <div className="card-content">
-                  <p className="main">Check out</p>
-                  <p className="base">Before 12.00h</p>
-                </div>
-                <div className="card-content">
-                  <p className="main">Reservation date</p>
-                  <p className="base">From <strong><span id="checkin-summary">4/7/2018</span></strong> to <strong
-                    id="checkout-summary">15/7/2018</strong></p>
-                </div>
-                <div className="card-content">
-                  <p className="main">People</p>
-                  <p className="base" id="adults-summary">2 Adults</p>
-                  <p className="base" id="children-summary">2 Children</p>
-                </div>
-                <div className="card-checkout clearfix">
-                  <div className="left pull-left">
-                    <p className="main">Total</p>
-                    <p className="base"><a href="#">Price details &gt;</a></p>
-                  </div>
-                  <div className="right pull-right">
-                    <p className="main">€350</p>
-                  </div>
-                </div>
-                <a href="#" className="btn btn-primary btn-group-justified">
-                  Save
-                </a>
-              </div>
-            </div>
-          </div>
+          {currentRoom && <Sidebar adults={adults} children={children} checkin={checkin}
+                                   checkout={checkout} {...currentRoom} />}
         </div>
       </div>
       <footer className="footer">
