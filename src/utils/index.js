@@ -17,9 +17,7 @@ export const eeuu2EuDate = date => format(parseISO(eeuu2ISO(date)), 'dd-MM-yyyy'
 
 
 export const isAfterDateEU = (date1, date2) => {
-  console.log(date1,date2)
   const date1parsed = parseISO(eu2ISO(date1), 'dd-MM-yyyy', new Date())
   const date2parsed = parseISO(eu2ISO(date2), 'dd-MM-yyyy', new Date())
-  console.log(date1parsed, date2parsed)
   return isAfter(date1parsed, date2parsed)
 }

@@ -49,7 +49,6 @@ class Main extends Component {
 
   setCurrentRoom = index => {
     const { state: { available } } = this
-    console.log(index)
     if (available) {
       if (index <= available.length - 1) {
         this.setState({ currentRoom: available[index] })
@@ -107,7 +106,6 @@ class Main extends Component {
     })
     try {
       const available = await getAvailable(1, 1, today, tomorrow, promo_code)
-      console.log(available)
       this.setState({ available })
       if (available) this.setState({ currentRoom: available[0] })
     } catch (e) {
